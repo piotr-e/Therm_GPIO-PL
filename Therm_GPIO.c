@@ -25,6 +25,7 @@ int main(int argc, char **argv)
 {
      if (!bcm2835_init())
           return 1;
+inicjalizacja(PIN);
 //    [tutaj znajdzie się kod programu...]
 
     bcm2835_close();
