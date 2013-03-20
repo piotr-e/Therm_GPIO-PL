@@ -19,44 +19,107 @@
 
 int g;  //Zmienna pinu GPIO.
 char buf[8];  //Zmienna potrzebna do konwersji temperatury.
-unsigned char inicjalizacja(int pin);
+unsigned char inicjalizacja();
+void zapisz_bit(char bit);
+unsigned char odczytaj_bit(void);
 
 int main(int argc, char **argv)
 {
-     if (!bcm2835_init())
+     if (!bcm2835_init()){
           return 1;
-inicjalizacja(PIN);
+     }
+     else{
+     inicjalizacja();
+     }
+
 //    [tutaj znajdzie się kod programu...]
 
     bcm2835_close();
 }
 
-unsigned char inicjalizacja(int pin) 
+
+unsigned char inicjalizacja() 
 {
-    bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP); //Ustawienie pinu jako wyjscie.
-    STAN_NISKI(pin);  //Ustawienie magistrali w stan niski.
-    delay(500);  //Odczekanie 500 milisekund.
-    STAN_WYSOKI(pin);  //Zwolnienie magistrali.
-    bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);  //Ustawienie pinu jako wejscie.
-    bcm2835_gpio_set_pud(pin, BCM2835_GPIO_PUD_UP);
+    bcm2835_gpio_fsel(PIN, BCM2835_GPIO_FSEL_OUTP); //Ustawienie pinu jako wyjscie.
+    STAN_NISKI(PIN);  //Ustawienie magistrali w stan niski.
+    delay(100);  //Odczekanie 500 milisekund.
+    STAN_WYSOKI(PIN);  //Zwolnienie magistrali.
+    bcm2835_gpio_fsel(PIN, BCM2835_GPIO_FSEL_INPT);  //Ustawienie pinu jako wejscie.
+    bcm2835_gpio_set_pud(PIN, BCM2835_GPIO_PUD_UP);
 
     int stat;
-    stat = bcm2835_gpio_lev(pin);
-    if (stat==0) {
-        printf("DS18B20 zglosil swoja obecnosc.\n");
-        }
-        else
+    stat = bcm2835_gpio_lev(PIN);
+    int i;
+    for(i=0;i<40;i++){
+    if (stat==0)
         {
-        printf("Brak DS18B20 lub blad w podlaczeniu.\n");
+        printf("DS18B20 zglosil swoja obecnosc, oczekiwanie %d. \n", i);
         }
-    stat = bcm2835_gpio_lev(pin);
-    if (stat==0){
-       printf("Nadal stan niski.\n");
-       }
-       else
+	stat = bcm2835_gpio_lev(PIN);
+    }
+    if (stat==1)
        {
        printf("Magistrala gotowa do komunikacji.\n");
        }
+
     return 0;
+}
+
+void zapisz_bit(char bit){
+  STAN_NISKI(PIN);
+    delay(5);
+    if(bit==1){
+	STAN_WYSOKI(PIN);
+	}
+	else{
+	delay(80);
+	STAN_WYSOKI(PIN);
+	}
+//return 0;
+}
+
+unsigned char odczytaj_bit(void){
+  unsigned char ustawiony_bit = 0;
+  STAN_NISKI(PIN);
+  delay(2);
+  STAN_WYSOKI(PIN);
+  delay(15);
+  bcm2835_gpio_fsel(PIN, BCM2835_GPIO_FSEL_INPT);  //Ustawienie pinu jako w$
+  bcm2835_gpio_set_pud(PIN, BCM2835_GPIO_PUD_UP);
+
+  int stat;
+  stat = bcm2835_gpio_lev(PIN);
+  if (stat==1)
+        {
+        ustawiony_bit=1;
+        }
+        else
+        {
+        ustawiony_bit=0;
+        }
+
+return(ustawiony_bit);
+}
+
+
+void zapisz_bajt(char bajt_danych){
+  unsigned char i, pom;
+  for(i=0;i<8;i++){
+    pom=bajt_danych>>i;
+    pom&=0x01;
+    zapisz_bit(pom);
+  }
+delay(100);
+//return 0;
+}
+
+
+unsigned char odczytaj_bajt(void){
+  unsigned char bajt_danych, i;
+  for(i=0;i<8;i++){
+   if(odczytaj_bit()) bajt_danych|=0x01<<i;
+   delay(15);
+  }
+return(bajt_danych);
 }
 
